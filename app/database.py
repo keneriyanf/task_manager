@@ -3,7 +3,6 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./tasks.db"
 
-# check_same_thread=False needed for sqlite + fastapi's threading model
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
