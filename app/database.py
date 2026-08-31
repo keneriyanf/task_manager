@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# sqlite file lives at project root
 SQLALCHEMY_DATABASE_URL = "sqlite:///./tasks.db"
 
 # check_same_thread=False needed for sqlite + fastapi's threading model
