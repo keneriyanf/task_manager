@@ -38,3 +38,5 @@ def delete_task(db: Session, task_id: int):
         return None
 
     db.delete(db_task)
+    db.commit()
+    return db_task
