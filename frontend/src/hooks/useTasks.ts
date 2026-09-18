@@ -8,13 +8,16 @@ interface Filters {
   search?: string;
 }
 
-// bare-bones for now — loading/error states land in Phase 7
 export function useTasks(filters: Filters) {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  useEffect(() => {
+  const refetch = () => {
     getTasks(filters).then(setTasks).catch(console.error);
+  };
+
+  useEffect(() => {
+    refetch();
   }, [filters.status, filters.priority, filters.search]);
 
-  return tasks;
+  return { tasks, refetch };
 }

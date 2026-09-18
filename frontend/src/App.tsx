@@ -1,19 +1,37 @@
 import { useState } from "react";
 import { FilterBar } from "./components/FilterBar";
 import { Timeline } from "./components/Timeline";
+import { TaskFormModal } from "./components/TaskFormModal";
 import { useTasks } from "./hooks/useTasks";
-import type { TaskStatus, TaskPriority } from "./types/task";
+import type { TaskStatus, TaskPriority, Task } from "./types/task";
 
 function App() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<TaskStatus | "">("");
   const [priority, setPriority] = useState<TaskPriority | "">("");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
-  const tasks = useTasks({
+  const { tasks, refetch } = useTasks({
     search: search || undefined,
     status: status || undefined,
     priority: priority || undefined,
   });
+
+  const openNewTask = () => {
+    setEditingTask(null);
+    setShowForm(true);
+  };
+
+  const openEditTask = (task: Task) => {
+    setEditingTask(task);
+    setShowForm(true);
+  };
+
+  const handleSaved = () => {
+    setShowForm(false);
+    refetch();
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
@@ -25,7 +43,23 @@ function App() {
         onStatusChange={setStatus}
         onPriorityChange={setPriority}
       />
-      <Timeline tasks={tasks} />
+
+      <button
+        onClick={openNewTask}
+        className="fixed bottom-8 right-8 z-20 bg-ink text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl shadow-[0_4px_16px_rgba(0,0,0,0.15)]"
+      >
+        +
+      </button>
+
+      <Timeline tasks={tasks} onTaskClick={openEditTask} />
+
+      {showForm && (
+        <TaskFormModal
+          task={editingTask}
+          onClose={() => setShowForm(false)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,14 @@
-import type { Task } from '../types/task'
-import { TaskCard } from './TaskCard'
+import type { Task } from "../types/task";
+import { TaskCard } from "./TaskCard";
 
-export function Timeline({ tasks }: { tasks: Task[] }) {
-  const today = new Date().toISOString().slice(0, 10)
+export function Timeline({
+  tasks,
+  onTaskClick,
+}: {
+  tasks: Task[];
+  onTaskClick: (task: Task) => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="relative max-w-xl mx-auto pl-8">
@@ -19,7 +25,7 @@ export function Timeline({ tasks }: { tasks: Task[] }) {
         <div key={task.id} className="relative mb-4">
           <div className="absolute -left-5 top-5 w-4 h-0.5 bg-line" />
           <div className="absolute -left-6 top-4 w-2 h-2 rounded-full bg-line" />
-          <TaskCard task={task} />
+          <TaskCard task={task} onClick={() => onTaskClick(task)} />
         </div>
       ))}
 
