@@ -1,8 +1,10 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import crud, schemas
 from ..database import get_db
+from ..enums import TaskStatus, TaskPriority
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -13,8 +15,15 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[schemas.TaskResponse])
-def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_tasks(db, skip=skip, limit=limit)
+def read_tasks(
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[TaskStatus] = None,
+    priority: Optional[TaskPriority] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    return crud.get_tasks(db, skip=skip, limit=limit, status=status, priority=priority, search=search)
 
 
 @router.get("/{task_id}", response_model=schemas.TaskResponse)
