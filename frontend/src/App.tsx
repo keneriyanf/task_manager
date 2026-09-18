@@ -12,7 +12,7 @@ function App() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const { tasks, refetch } = useTasks({
+  const { tasks, isLoading, error, refetch } = useTasks({
     search: search || undefined,
     status: status || undefined,
     priority: priority || undefined,
@@ -51,7 +51,12 @@ function App() {
         +
       </button>
 
-      <Timeline tasks={tasks} onTaskClick={openEditTask} />
+      <Timeline
+        tasks={tasks}
+        isLoading={isLoading}
+        error={error}
+        onTaskClick={openEditTask}
+      />
 
       {showForm && (
         <TaskFormModal

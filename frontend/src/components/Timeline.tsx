@@ -1,13 +1,14 @@
 import type { Task } from "../types/task";
 import { TaskCard } from "./TaskCard";
 
-export function Timeline({
-  tasks,
-  onTaskClick,
-}: {
+interface Props {
   tasks: Task[];
+  isLoading: boolean;
+  error: string | null;
   onTaskClick: (task: Task) => void;
-}) {
+}
+
+export function Timeline({ tasks, isLoading, error, onTaskClick }: Props) {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -21,17 +22,35 @@ export function Timeline({
         </span>
       </div>
 
-      {tasks.map((task) => (
-        <div key={task.id} className="relative mb-4">
-          <div className="absolute -left-5 top-5 w-4 h-0.5 bg-line" />
-          <div className="absolute -left-6 top-4 w-2 h-2 rounded-full bg-line" />
-          <TaskCard task={task} onClick={() => onTaskClick(task)} />
+      {isLoading && (
+        <div className="flex flex-col gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-line/40 animate-pulse" />
+          ))}
         </div>
-      ))}
+      )}
 
-      {tasks.length === 0 && (
+      {error && !isLoading && (
+        <p className="font-meta text-xs text-high">{error}</p>
+      )}
+
+      {!isLoading && !error && tasks.length === 0 && (
         <p className="font-meta text-xs text-ink-muted">no tasks yet</p>
       )}
+
+      {!isLoading &&
+        !error &&
+        tasks.map((task, i) => (
+          <div
+            key={task.id}
+            className="relative mb-4 animate-[fadeIn_0.3s_ease-out_both]"
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            <div className="absolute -left-5 top-5 w-4 h-0.5 bg-line" />
+            <div className="absolute -left-6 top-4 w-2 h-2 rounded-full bg-line" />
+            <TaskCard task={task} onClick={() => onTaskClick(task)} />
+          </div>
+        ))}
     </div>
   );
 }
