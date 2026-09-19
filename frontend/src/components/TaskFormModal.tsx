@@ -16,9 +16,11 @@ export function TaskFormModal({ task, onClose, onSaved }: Props) {
     task?.priority ?? "medium",
   );
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!title.trim()) return;
 
     const data = {
@@ -38,6 +40,7 @@ export function TaskFormModal({ task, onClose, onSaved }: Props) {
       onSaved();
     } catch (err) {
       console.error(err);
+      setFormError("could not save this task");
     }
   };
 
@@ -48,6 +51,7 @@ export function TaskFormModal({ task, onClose, onSaved }: Props) {
       onSaved();
     } catch (err) {
       console.error(err);
+      setFormError("could not delete this task");
     }
   };
 
@@ -103,12 +107,16 @@ export function TaskFormModal({ task, onClose, onSaved }: Props) {
           className="font-meta text-xs border border-line rounded-lg px-3 py-2"
         />
 
+        {formError && (
+          <p className="font-meta text-xs text-high">{formError}</p>
+        )}
+
         <div className="flex items-center justify-between mt-2">
           {task ? (
             <button
               type="button"
               onClick={handleDelete}
-              className="font-meta text-xs text-high"
+              className="font-meta text-xs text-high cursor-pointer"
             >
               delete
             </button>
@@ -119,13 +127,13 @@ export function TaskFormModal({ task, onClose, onSaved }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="font-meta text-xs text-ink-muted px-3 py-1.5"
+              className="font-meta text-xs text-ink-muted px-3 py-1.5 cursor-pointer"
             >
               cancel
             </button>
             <button
               type="submit"
-              className="font-meta text-xs bg-ink text-white rounded-full px-4 py-1.5"
+              className="font-meta text-xs bg-ink text-white rounded-full px-4 py-1.5 cursor-pointer"
             >
               save
             </button>

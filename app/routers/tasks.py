@@ -47,3 +47,4 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db_task = crud.delete_task(db, task_id)
     if db_task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    return db_task

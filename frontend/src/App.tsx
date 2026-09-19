@@ -46,7 +46,7 @@ function App() {
 
       <button
         onClick={openNewTask}
-        className="fixed bottom-8 right-8 z-20 bg-ink text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl shadow-[0_4px_16px_rgba(0,0,0,0.15)]"
+        className="fixed bottom-8 right-8 z-20 bg-ink text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl shadow-[0_4px_16px_rgba(0,0,0,0.15)] cursor-pointer"
       >
         +
       </button>
