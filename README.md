@@ -1,122 +1,184 @@
-Task Manager API
+# Task Manager
 
-A simple task management REST API built with FastAPI, SQLAlchemy, and SQLite. This started as a project to move from basic Python (variables, functions, classes) into a real backend framework.
+A full-stack task management application built with **FastAPI** (backend) and **React + TypeScript** (frontend). Originally scoped as three progressive internship tasks — choosing a backend stack, building a CRUD API, then extending it with a real frontend — this repository now contains the complete, working product.
 
-What it does:
+The frontend is built around a custom interface concept, **"The Timeline"**: tasks are displayed as cards branching off a vertical spine, with priority represented as a soft ambient glow rather than a flat badge, deliberately avoiding a generic dashboard or grid layout.
 
-Create, read, update, and delete tasks through a REST API. Each task has a title, an optional description, a completed flag, and timestamps for when it was created and last updated.
+---
 
-Tech stack
-FastAPI — the web framework
-SQLAlchemy — ORM, handles talking to the database
-Pydantic — request/response validation
-SQLite — the database (a single file, tasks.db, no separate server needed)
-Uvicorn — the ASGI server that actually runs the app
+## Table of contents
 
-Project structure
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Setup and installation](#setup-and-installation)
+- [Running the app](#running-the-app)
+- [API endpoints](#api-endpoints)
+- [Design decisions](#design-decisions)
+- [Notable bugs and how they were found](#notable-bugs-and-how-they-were-found)
+- [Not implemented](#not-implemented)
+
+---
+
+## Tech stack
+
+**Backend**
+- **FastAPI** — the web framework, chosen for its Python type-hint-driven validation and automatic interactive documentation.
+- **SQLAlchemy** — ORM layer between Python and the database.
+- **Pydantic** — request and response validation.
+- **SQLite** — the database, stored as a single file (`tasks.db`).
+- **Uvicorn** — the ASGI server running the application.
+
+**Frontend**
+- **React** with **TypeScript** — component-based UI, statically typed.
+- **Vite** — build tool and development server.
+- **Tailwind CSS v4** — utility-first styling, with a custom design-token theme (colors, typography) defined via Tailwind's `@theme` directive.
+
+---
+
+## Project structure
+
+```
 task_manager/
-├── app/
-│ ├── **init**.py
-│ ├── main.py # entry point — creates the app, wires everything together
-│ ├── database.py # DB connection, session factory, Base class
-│ ├── models.py # SQLAlchemy table definitions (the Task table)
-│ ├── schemas.py # Pydantic request/response shapes
-│ ├── crud.py # the actual DB queries (create/read/update/delete)
-│ └── routers/
-│ ├── **init**.py
-│ └── tasks.py # HTTP endpoints, calls into crud.py
-├── .venv/ # virtual environment (not committed)
+├── app/                        # backend
+│   ├── main.py                 # entry point — creates the app, CORS, table creation, router registration
+│   ├── database.py             # DB connection, session factory, Base class
+│   ├── models.py                # SQLAlchemy table definition
+│   ├── schemas.py               # Pydantic request/response shapes
+│   ├── crud.py                  # database query functions
+│   ├── enums.py                 # shared TaskStatus / TaskPriority definitions
+│   └── routers/
+│       └── tasks.py             # HTTP endpoints
+├── frontend/                    # frontend
+│   └── src/
+│       ├── main.tsx              # entry point, mounts App
+│       ├── App.tsx               # root component, shared state, wiring
+│       ├── index.css             # Tailwind + custom theme tokens
+│       ├── types/task.ts         # TypeScript types mirroring backend schemas
+│       ├── api/tasks.ts          # typed fetch wrapper for all CRUD calls
+│       ├── hooks/useTasks.ts     # data-fetching hook (loading/error/refetch)
+│       └── components/
+│           ├── TaskCard.tsx      # a single task card
+│           ├── FilterBar.tsx     # floating search/filter pill bar
+│           ├── Timeline.tsx      # the spine, today marker, and card list
+│           └── TaskFormModal.tsx # create / edit / delete form
 ├── requirements.txt
 ├── .gitignore
+├── .gitattributes
 └── README.md
+```
 
-Each file has exactly one job. Request flow looks like this:
+Each backend file has exactly one job. A request flows: `Client → routers/tasks.py → crud.py → models.py → database.py → tasks.db`. On the frontend, a user action in `App.tsx` triggers a request through `useTasks.ts`/`api/tasks.ts`, and the response flows back down through `Timeline.tsx` into each `TaskCard.tsx`.
 
-Client → routers/tasks.py → crud.py → models.py → database.py → tasks.db
+---
 
-Setup
+## Setup and installation
 
-Clone the repo and set up a virtual environment:
+### Backend
 
-bash
+```bash
 git clone https://github.com/keneriyanf/task_manager.git
 cd task_manager
-python -m venv .venv
-.venv\Scripts\activate # Windows
 
-# source .venv/bin/activate # Mac/Linux
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
 
 pip install -r requirements.txt
-Running it
-bash
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+---
+
+## Running the app
+
+Both servers need to run **at the same time**, in two separate terminals.
+
+**Terminal 1 — backend:**
+```bash
 uvicorn app.main:app --reload
+```
+Runs at `http://127.0.0.1:8000`. Interactive API documentation (Swagger UI) is available at `http://127.0.0.1:8000/docs`.
 
-Then go to http://127.0.0.1:8000/docs — that's FastAPI's auto-generated Swagger UI, and it lets you test every endpoint straight from the browser without writing a single curl command.
+**Terminal 2 — frontend:**
+```bash
+cd frontend
+npm run dev
+```
+Runs at `http://localhost:5173`.
 
-The tasks table gets created automatically the first time you run the app, so there's no separate migration step to run.
+The backend's `tasks.db` file is created automatically on first run — no separate migration step is needed. CORS is configured to allow requests specifically from `http://localhost:5173`.
 
-API endpoints
-Method Path Description
-POST /tasks/ Create a new task
-GET /tasks/ List tasks (supports skip/limit pagination)
-GET /tasks/{task_id} Get one task by ID
-PUT /tasks/{task_id} Update a task (partial updates supported)
-DELETE /tasks/{task_id} Delete a task
-Example: creating a task
-bash
+---
+
+## API endpoints
+
+| Method | Path                  | Description                                              |
+|--------|-----------------------|------------------------------------------------------------|
+| POST   | `/tasks/`              | Create a new task                                          |
+| GET    | `/tasks/`               | List tasks — supports `skip`/`limit` pagination, plus optional `status`, `priority`, and `search` query parameters |
+| GET    | `/tasks/{task_id}`      | Get one task by ID                                          |
+| PUT    | `/tasks/{task_id}`      | Update a task (partial updates supported — only send the fields you're changing) |
+| DELETE | `/tasks/{task_id}`      | Delete a task                                               |
+
+A task has the following fields: `id`, `title` (required), `description` (optional), `status` (`pending` / `in_progress` / `completed`, defaults to `pending`), `priority` (`low` / `medium` / `high`, defaults to `medium`), `due_date` (optional, `YYYY-MM-DD`), `created_at`, and `updated_at`.
+
+**Example — creating a task:**
+```bash
 curl -X POST http://127.0.0.1:8000/tasks/ \
- -H "Content-Type: application/json" \
- -d '{"title": "Buy milk", "description": "2%"}'
-Example: partial update
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy milk", "priority": "high"}'
+```
 
-You only need to send the fields you're actually changing:
+**Example — filtering:**
+```
+GET /tasks/?status=completed
+GET /tasks/?priority=high
+GET /tasks/?search=milk
+```
 
-bash
+**Example — partial update:**
+```bash
 curl -X PUT http://127.0.0.1:8000/tasks/1 \
- -H "Content-Type: application/json" \
- -d '{"completed": true}'
+  -H "Content-Type: application/json" \
+  -d '{"status": "completed"}'
+```
+Sending only `status` leaves every other field untouched, handled via `exclude_unset=True` in `crud.py`.
 
-Sending only completed won't touch title or description — this is handled with exclude_unset=True in crud.py, so unset fields never get overwritten with None.
+---
 
-A bug I hit (and how I found it)
+## Design decisions
 
-DELETE /tasks/{task_id} was returning a 404 for tasks that definitely existed — I'd just GETted them seconds before. Instead of guessing, I isolated the problem: confirmed GET /tasks/{id} worked fine on its own, which meant the issue had to be specific to the delete path, not the underlying query logic both functions share.
+The frontend deliberately avoids a generic dashboard or grid layout, in line with the internship task's explicit request for a creative, non-templated UI. The interface — "The Timeline" — is built around:
 
-Turned out delete_task in crud.py was missing its last two lines:
+- **A vertical spine** running down the left side of the page, with task cards branching off it, evoking a chronological flow rather than a static list.
+- **A priority-driven glow** on each card's edge — a soft `box-shadow`, not a flat colored badge — using a graduated "urgency temperature" palette (coral for high, ochre for medium, pine green for low) rather than a conventional traffic-light scheme.
+- **A separate status indicator**, a small colored dot distinct from the priority glow, so priority and status remain visually independent, matching how they're independent fields on the task itself.
+- **A sticky "today" marker**, pinned to the spine as the page scrolls, orienting the viewer relative to due dates.
+- **A floating, pill-shaped filter bar**, in place of a sidebar or a conventional top navigation row.
 
-python
+Typography pairs a geometric sans-serif (Space Grotesk) for headings and titles with a monospaced typeface (JetBrains Mono) for all metadata and timestamps, reinforcing the sense of a precise, chronological log.
 
-# before (broken)
+---
 
-def delete_task(db: Session, task_id: int):
-db_task = get_task(db, task_id)
-if db_task is None:
-return None
-db.delete(db_task) # falls off the end here — implicitly returns None
+## Notable bugs and how they were found
 
-Without an explicit return, the function returned None by default — even after successfully finding and staging the task for deletion. The router saw None and (correctly, given what it was told) raised a 404. It was also missing db.commit(), so even a fixed return value wouldn't have actually persisted the delete.
+**`delete_task` returning false 404s (Task 02).** `DELETE /tasks/{task_id}` returned a 404 for tasks that definitely existed. Isolating the problem — confirming `GET /tasks/{id}` worked fine on its own — narrowed it to the delete path specifically. The function was missing an explicit `return` statement and a `db.commit()` call; without them, it silently returned `None` by default even after successfully finding and staging the task for deletion, which the router correctly (given what it was told) interpreted as "not found."
 
-python
+**Delete appearing to freeze the interface (Task 03).** After building the frontend's delete flow, deleting a task removed it from the database correctly but left the interface appearing to hang, only resolving on a manual refresh. This had two separate causes: first, SQLAlchemy's default session behavior expired the deleted object's data immediately after commit, so the API's attempt to serialize a response failed; second, once that was fixed, the delete route itself was found to have the same class of bug as the Task 02 issue above — no explicit `return` on the success path, falling through to an implicit `None` that failed FastAPI's response-model validation. Both were fixed, and visible error feedback was added to every write action in the UI (create, edit, delete) so a failure would be immediately obvious rather than silent, going forward.
 
-# after (fixed)
+A complete, file-by-file account of every bug, gotcha, and process decision made during development is kept separately in the project's internal documentation.
 
-def delete_task(db: Session, task_id: int):
-db_task = get_task(db, task_id)
-if db_task is None:
-return None
-db.delete(db_task)
-db.commit()
-return db_task
+---
 
-Lesson: a function silently returning None is one of the easiest bugs to miss, because nothing crashes and you won't notice it until you test it
+## Not implemented
 
-Other things I ran into
-Models vs. schemas mixing up — easy to conflate at first. Rule of thumb that stuck: models.py talks to the database (disk), schemas.py talks to whoever's calling the API (wire). Neither one touches the other's job.
-.venv not active — pip installing without the venv active installs system-wide, which then causes confusing ImportErrors once the venv actually gets activated later. Always check for the (.venv) prefix in the terminal prompt before installing anything.
-Line ending churn between machines — working across Windows and other setups caused noisy diffs from CRLF vs LF. Worth setting up a .gitattributes early to avoid this.
-Unexpected fields getting silently dropped — by default, Pydantic ignores extra fields a client sends that aren't part of the schema (extra="ignore"), rather than rejecting them. This is actually the point of keeping TaskCreate narrow — a client can't sneak in their own id or completed value even if they try, since those fields simply don't exist on that schema.
-
-Notes to self
-No auth on this yet — anyone who can reach the API can do anything. Fine for local dev, but not fine for anything public.
-.venv/ and tasks.db are both gitignored — don't expect them to show up after a fresh clone, they need to be regenerated locally.
-If cloning onto a new machine, remember the venv has to be rebuilt from requirements.txt every time — it never comes from GitHub.
+- **Authentication** — explicitly out of scope for this task (deferred per the internship brief). No login, no per-user task ownership; anyone who can reach the API can access every task.
+- **Database migrations** — schema changes during development were applied by deleting and recreating the local `tasks.db` file rather than through a migration tool such as Alembic, appropriate for a single-developer local project but not for a production deployment with real data to preserve.
